@@ -1,4 +1,4 @@
 require 'eassl'
 
-RSpec.describe EaSSL, "#serial" do
+RSpec.describe EaSSL, '#serial' do
 end

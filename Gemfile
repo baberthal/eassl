@@ -15,4 +15,5 @@ group :development, :test do
   gem 'overcommit'
   gem 'ruby-lint', github: 'baberthal/ruby-lint'
   gem 'simplecov', require: false
+  gem 'ruby_gntp', require: false
 end

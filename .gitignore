@@ -50,3 +50,4 @@ build/
 
 
 #!! ERROR: vi is undefined. Use list command to see defined gitignore types !!#
+.rake_tasks

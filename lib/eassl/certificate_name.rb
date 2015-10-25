@@ -33,8 +33,6 @@ module EaSSL
       ssl
     end
 
-    def options
-      @options
-    end
+    attr_reader :options
   end
 end

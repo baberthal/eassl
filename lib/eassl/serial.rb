@@ -12,12 +12,12 @@ module EaSSL
 
     def self.load(serial_file_path)
       hex_string = (File.read(serial_file_path))
-      self.new(:next => Integer("0x#{hex_string}"), :path => serial_file_path)
+      new(next: Integer("0x#{hex_string}"), path: serial_file_path)
     end
 
     def save!
       if @path
-        hex_string = sprintf("%04X", @next)
+        hex_string = sprintf('%04X', @next)
         File.open(@path, 'w') do |io|
           io.write "#{hex_string}\n"
         end
@@ -25,9 +25,8 @@ module EaSSL
     end
 
     def issue_serial
-      @next = @next + 1
+      @next += 1
       @next - 1
     end
   end
 end
-

@@ -14,9 +14,9 @@ module EaSSL
         @serial = options[:serial]
       else
         options[:name] ||= {}
-        @key = Key.new({:password => 'ca_ssl_password'}.update(options))
-        @certificate = AuthorityCertificate.new(:key => @key, :name => options[:name])
-        @serial = Serial.new(:next => 1)
+        @key = Key.new({ password: 'ca_ssl_password' }.update(options))
+        @certificate = AuthorityCertificate.new(key: @key, name: options[:name])
+        @serial = Serial.new(next: 1)
       end
     end
 
@@ -24,19 +24,17 @@ module EaSSL
       key = Key.load(File.join(options[:ca_path], 'cakey.pem'), options[:ca_password])
       certificate = AuthorityCertificate.load(File.join(options[:ca_path], 'cacert.pem'))
       serial = Serial.load(File.join(options[:ca_path], 'serial.txt'))
-      self.new(:key => key, :certificate => certificate, :serial => serial)
+      new(key: key, certificate: certificate, serial: serial)
     end
 
-    def create_certificate(signing_request, type='server', days_valid=nil, digest=OpenSSL::Digest::SHA512.new)
+    def create_certificate(signing_request, type = 'server', days_valid = nil, digest = OpenSSL::Digest::SHA512.new)
       options = {
-        :signing_request => signing_request,
-        :ca_certificate => @certificate,
-        :serial => @serial.issue_serial,
-        :type => type
+        signing_request: signing_request,
+        ca_certificate: @certificate,
+        serial: @serial.issue_serial,
+        type: type
       }
-      if days_valid
-        options[:days_valid] = days_valid
-      end
+      options[:days_valid] = days_valid if days_valid
       cert = Certificate.new(options)
       @serial.save!
       cert.sign(@key, digest)

@@ -8,13 +8,13 @@ module EaSSL
   class Certificate
     def initialize(options)
       @options = {
-        :days_valid       => (365 * 5),
-        :signing_request  => nil,               #required
-        :ca_certificate   => nil,               #required
-        :comment          => "Ruby/OpenSSL/EaSSL Generated Certificate",
-        :type             => "server",
-        :subject_alt_name => nil, #optional e.g. [ "*.example.com", "example.com" ]
-        :override_req     => true
+        days_valid: (365 * 5),
+        signing_request: nil, # required
+        ca_certificate: nil, # required
+        comment: 'Ruby/OpenSSL/EaSSL Generated Certificate',
+        type: 'server',
+        subject_alt_name: nil, # optional e.g. [ "*.example.com", "example.com" ]
+        override_req: true
       }.update(options)
     end
 
@@ -23,7 +23,7 @@ module EaSSL
         @ssl = OpenSSL::X509::Certificate.new
         @ssl.not_before = Time.now
         @ssl.subject = @options[:signing_request].subject
-        @ssl.issuer = @options[:ca_certificate]? @options[:ca_certificate].subject :  @ssl.subject
+        @ssl.issuer = @options[:ca_certificate] ? @options[:ca_certificate].subject : @ssl.subject
         @ssl.not_after = @ssl.not_before + @options[:days_valid] * 24 * 60 * 60
         @ssl.public_key = @options[:signing_request].public_key
         @ssl.serial = @options[:serial] || 2
@@ -31,28 +31,28 @@ module EaSSL
 
         ef = OpenSSL::X509::ExtensionFactory.new
         ef.subject_certificate = @ssl
-        ef.issuer_certificate = @options[:ca_certificate]? @options[:ca_certificate].ssl : @ssl
-        @ssl.extensions = [ ef.create_extension("subjectKeyIdentifier", "hash") ]
-        @ssl.add_extension(ef.create_extension("authorityKeyIdentifier", "keyid:always,issuer:always"))
-        
-        extensions = Array.new
-        
-        extensions << ef.create_extension("basicConstraints","CA:FALSE")
-        extensions << ef.create_extension("nsComment", @options[:comment])
+        ef.issuer_certificate = @options[:ca_certificate] ? @options[:ca_certificate].ssl : @ssl
+        @ssl.extensions = [ef.create_extension('subjectKeyIdentifier', 'hash')]
+        @ssl.add_extension(ef.create_extension('authorityKeyIdentifier', 'keyid:always,issuer:always'))
+
+        extensions = []
+
+        extensions << ef.create_extension('basicConstraints', 'CA:FALSE')
+        extensions << ef.create_extension('nsComment', @options[:comment])
 
         case @options[:type]
         when 'server'
-          extensions << ef.create_extension("keyUsage", "digitalSignature,keyEncipherment")
-          extensions << ef.create_extension("extendedKeyUsage", "serverAuth")
+          extensions << ef.create_extension('keyUsage', 'digitalSignature,keyEncipherment')
+          extensions << ef.create_extension('extendedKeyUsage', 'serverAuth')
         when 'client'
-          extensions << ef.create_extension("keyUsage", "nonRepudiation,digitalSignature,keyEncipherment")
-          extensions << ef.create_extension("extendedKeyUsage", "clientAuth,emailProtection")
+          extensions << ef.create_extension('keyUsage', 'nonRepudiation,digitalSignature,keyEncipherment')
+          extensions << ef.create_extension('extendedKeyUsage', 'clientAuth,emailProtection')
         end
 
-        #add subject alternate names
+        # add subject alternate names
         if @options[:subject_alt_name]
           subjectAltName = @options[:subject_alt_name].map { |d| "DNS: #{d}" }.join(',')
-          extensions << ef.create_extension("subjectAltName", subjectAltName)
+          extensions << ef.create_extension('subjectAltName', subjectAltName)
         end
 
         if sr = @options[:signing_request]
@@ -74,7 +74,7 @@ module EaSSL
       @ssl
     end
 
-    def sign(ca_key, digest=OpenSSL::Digest::SHA1.new)
+    def sign(ca_key, digest = OpenSSL::Digest::SHA1.new)
       ssl.sign(ca_key.private_key, digest)
     end
 
@@ -101,7 +101,7 @@ module EaSSL
       begin
         @ssl = OpenSSL::X509::Certificate.new(pem_string)
       rescue
-        raise "CertificateLoader: Error loading certificate"
+        raise 'CertificateLoader: Error loading certificate'
       end
       self
     end

@@ -10,9 +10,9 @@ module EaSSL
 
     def initialize(options = {})
       @options = {
-        :name       => {},                #required, CertificateName
-        :key        => nil,               #required
-        :digest     => OpenSSL::Digest::SHA512.new,
+        name: {}, # required, CertificateName
+        key: nil, # required
+        digest: OpenSSL::Digest::SHA512.new
       }.update(options)
       @options[:key] ||= Key.new(@options)
     end
@@ -23,26 +23,26 @@ module EaSSL
         @ssl.version = 0
         @ssl.subject = CertificateName.new(@options[:name].options).name
         @ssl.public_key = key.public_key
-        
-        @extensions = Array.new
+
+        @extensions = []
         ef = OpenSSL::X509::ExtensionFactory.new
-        
+
         case @options[:type]
         when 'subordinate'
-          @extensions << ef.create_extension("basicConstraints","CA:TRUE")
+          @extensions << ef.create_extension('basicConstraints', 'CA:TRUE')
         when 'server'
-          @extensions << ef.create_extension("basicConstraints","CA:FALSE")
-          @extensions << ef.create_extension("keyUsage", "digitalSignature,keyEncipherment")
-          @extensions << ef.create_extension("extendedKeyUsage", "serverAuth")
+          @extensions << ef.create_extension('basicConstraints', 'CA:FALSE')
+          @extensions << ef.create_extension('keyUsage', 'digitalSignature,keyEncipherment')
+          @extensions << ef.create_extension('extendedKeyUsage', 'serverAuth')
         when 'client'
-          @extensions << ef.create_extension("basicConstraints","CA:FALSE")
-          @extensions << ef.create_extension("keyUsage", "nonRepudiation,digitalSignature,keyEncipherment")
-          @extensions << ef.create_extension("extendedKeyUsage", "clientAuth,emailProtection")
+          @extensions << ef.create_extension('basicConstraints', 'CA:FALSE')
+          @extensions << ef.create_extension('keyUsage', 'nonRepudiation,digitalSignature,keyEncipherment')
+          @extensions << ef.create_extension('extendedKeyUsage', 'clientAuth,emailProtection')
         end
-        
+
         if @options[:subject_alt_name]
           subjectAltName = @options[:subject_alt_name].map { |d| "DNS: #{d}" }.join(',')
-          @extensions << ef.create_extension("subjectAltName", subjectAltName)
+          @extensions << ef.create_extension('subjectAltName', subjectAltName)
         end
 
         if @extensions.count > 0
@@ -61,9 +61,7 @@ module EaSSL
       @options[:key]
     end
 
-    def options
-      @options
-    end
+    attr_reader :options
 
     def to_pem
       ssl.to_pem
@@ -83,14 +81,14 @@ module EaSSL
       begin
         @ssl = OpenSSL::X509::Request.new(pem_string)
         @extensions = begin
-          if attr = ssl.attributes.detect { |a| ['extReq','msExtReq'].include?(a.oid)}
+          if attr = ssl.attributes.detect { |a| %w(extReq msExtReq).include?(a.oid) }
             set = OpenSSL::ASN1.decode(attr.value)
             seq = set.value.first
             seq.value.collect { |e| OpenSSL::X509::Extension.new(e) }
           end
         end
       rescue
-        raise "SigningRequestLoader: Error loading signing request"
+        raise 'SigningRequestLoader: Error loading signing request'
       end
       self
     end

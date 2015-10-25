@@ -14,4 +14,5 @@ group :development, :test do
   gem 'reek', require: false
   gem 'overcommit'
   gem 'ruby-lint', github: 'baberthal/ruby-lint'
+  gem 'simplecov', require: false
 end

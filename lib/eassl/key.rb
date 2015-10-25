@@ -18,8 +18,8 @@ module EaSSL
     # Create new Key using the provided options or using the defaults
     def initialize(options = {}) #:params: options
       @options = {
-        :bits => 2048,
-        :password => 'ssl_password',
+        bits: 2048,
+        password: 'ssl_password'
       }.update(options)
     end
 
@@ -27,7 +27,7 @@ module EaSSL
       unless @ssl
         # <Should use some kind of logger on this>
         # $stderr.puts "Generating #{@options[:bits]} bit key\n"
-        @ssl = OpenSSL::PKey::RSA::new(@options[:bits])
+        @ssl = OpenSSL::PKey::RSA.new(@options[:bits])
       end
       @ssl
     end
@@ -53,16 +53,16 @@ module EaSSL
     end
 
     # Decrypt and load a PEM encoded Key from the file system with the provided password.
-    def self.load(pem_file_path, password=nil)
+    def self.load(pem_file_path, password = nil)
       new.load(File.read(pem_file_path), password)
     end
 
     # Decrypt and load a PEM encoded Key from provided string with the provided password.
-    def load(pem_string, password=nil)
+    def load(pem_string, password = nil)
       begin
-        @ssl = OpenSSL::PKey::RSA::new(pem_string, password || @options[:password])
+        @ssl = OpenSSL::PKey::RSA.new(pem_string, password || @options[:password])
       rescue
-        raise "KeyLoader: Error decrypting key with password"
+        raise 'KeyLoader: Error decrypting key with password'
       end
       self
     end

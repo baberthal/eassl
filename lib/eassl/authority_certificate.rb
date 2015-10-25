@@ -8,8 +8,8 @@ module EaSSL
   class AuthorityCertificate
     def initialize(options)
       @options = {
-        :key => nil, #required
-        :name => {}, #required, CertificateName
+        key: nil, # required
+        name: {}, # required, CertificateName
       }.update(options)
     end
 
@@ -17,7 +17,7 @@ module EaSSL
       unless @ssl
         cert = OpenSSL::X509::Certificate.new
         cert.not_before = Time.now
-        cert.subject = cert.issuer = CertificateName.new({ :common_name => "CA" }.update(@options[:name])).name
+        cert.subject = cert.issuer = CertificateName.new({ common_name: 'CA' }.update(@options[:name])).name
         cert.not_after = cert.not_before + (365 * 5) * 24 * 60 * 60
         cert.public_key = @options[:key].public_key
         cert.serial = 1
@@ -27,12 +27,12 @@ module EaSSL
         ef.subject_certificate = cert
         ef.issuer_certificate = cert
         cert.extensions = [
-          ef.create_extension("basicConstraints","CA:TRUE"),
-          ef.create_extension("keyUsage", "cRLSign, keyCertSign"),
-          ef.create_extension("subjectKeyIdentifier", "hash"),
-          ef.create_extension("nsComment", "Ruby/OpenSSL/EaSSL Generated Certificate"),
+          ef.create_extension('basicConstraints', 'CA:TRUE'),
+          ef.create_extension('keyUsage', 'cRLSign, keyCertSign'),
+          ef.create_extension('subjectKeyIdentifier', 'hash'),
+          ef.create_extension('nsComment', 'Ruby/OpenSSL/EaSSL Generated Certificate')
         ]
-        cert.add_extension(ef.create_extension("authorityKeyIdentifier", "keyid:always,issuer:always"))
+        cert.add_extension(ef.create_extension('authorityKeyIdentifier', 'keyid:always,issuer:always'))
         cert.sign(@options[:key].private_key, OpenSSL::Digest::SHA1.new)
         @ssl = cert
       end
@@ -47,7 +47,7 @@ module EaSSL
       begin
         @ssl = OpenSSL::X509::Certificate.new(pem_string)
       rescue
-        raise "CertificateLoader: Error loading certificate"
+        raise 'CertificateLoader: Error loading certificate'
       end
       self
     end

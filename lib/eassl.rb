@@ -1,6 +1,6 @@
 require 'openssl'
 require 'fileutils'
-$:.unshift File.expand_path(File.dirname(__FILE__))
+$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
 # = About EaSSL
 #
 # Author::    Paul Nicholson  (mailto:paul@webpowerdesign.net)
@@ -22,7 +22,7 @@ module EaSSL
   VERSION = '2.0.0'
 
   def self.generate_self_signed(options)
-    ca = CertificateAuthority.new({:bits => 1024}.update(options[:ca_options]||{}))
+    ca = CertificateAuthority.new({ bits: 1024 }.update(options[:ca_options] || {}))
     sr = SigningRequest.new(options)
     cert = ca.create_certificate(sr)
     [ca, sr, cert]
@@ -41,24 +41,24 @@ module EaSSL
       key = Key.load(server_key_file, 'countinghouse1234')
       cert = Certificate.load(server_cert_file)
     else
-      ca, sr, cert = self.generate_self_signed({:name => {:common_name => hostname}, :bits => 1024}.update(options))
+      ca, sr, cert = generate_self_signed({ name: { common_name: hostname }, bits: 1024 }.update(options))
       key = sr.key
       FileUtils.makedirs(eassl_host_dir)
-      File.open(%(#{ca_cert_file}.pem), "w", 0777) {|f| f << ca.certificate.to_pem }
-      File.open(%(#{ca_cert_file}.der), "w", 0777) {|f| f << ca.certificate.to_der }
-      File.open(ca_key_file, "w", 0777) {|f| f << ca.key.to_pem }
-      File.open(server_key_file, "w", 0777) {|f| f << key.to_pem }
-      File.open(server_cert_file, "w", 0777) {|f| f << cert.to_pem }
+      File.open(%(#{ca_cert_file}.pem), 'w', 0777) { |f| f << ca.certificate.to_pem }
+      File.open(%(#{ca_cert_file}.der), 'w', 0777) { |f| f << ca.certificate.to_der }
+      File.open(ca_key_file, 'w', 0777) { |f| f << ca.key.to_pem }
+      File.open(server_key_file, 'w', 0777) { |f| f << key.to_pem }
+      File.open(server_cert_file, 'w', 0777) { |f| f << cert.to_pem }
     end
 
     webrick_config.update({
-      :SSLEnable       => true,
-      :SSLPrivateKey => key.ssl,
-      :SSLCertificate => cert.ssl,
-      :SSLExtraChainCert => [Certificate.load(%(#{ca_cert_file}.pem)).ssl],
-      :SSLVerifyClient => OpenSSL::SSL::VERIFY_NONE,
-      :SSLStartImmediately => true,
-    })
+                            SSLEnable: true,
+                            SSLPrivateKey: key.ssl,
+                            SSLCertificate: cert.ssl,
+                            SSLExtraChainCert: [Certificate.load(%(#{ca_cert_file}.pem)).ssl],
+                            SSLVerifyClient: OpenSSL::SSL::VERIFY_NONE,
+                            SSLStartImmediately: true
+                          })
   end
 end
 

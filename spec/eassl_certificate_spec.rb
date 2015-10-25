@@ -1,85 +1,96 @@
 require 'eassl'
 
-RSpec.describe EaSSL, "#certificate" do
-  context "given a valid CA" do
-    
-    before(:all) do
-      @ca_path = File.join(File.dirname(__FILE__), '../test', 'CA')
-      @ca = EaSSL::CertificateAuthority.load(:ca_path => @ca_path, :ca_password => '1234')
-      @key = EaSSL::Key.new
-      @name = EaSSL::CertificateName.new(:common_name => 'foo.bar.com')
+RSpec.describe EaSSL, '#certificate' do
+  context 'given a valid CA' do
+    let(:cert) { EaSSL::Certificate.new(signing_request: csr) }
+    let(:csr) { EaSSL::SigningRequest.new(name: name, key: key) }
+    let(:name) { EaSSL::CertificateName.new(common_name: 'foo.bar.com') }
+    let(:key) { EaSSL::Key.new }
+    let(:ca) do
+      EaSSL::CertificateAuthority.load(ca_path: ca_path, ca_password: '1234')
     end
+    let(:ca_path) { File.join(File.dirname(__FILE__), '../test', 'CA') }
+    let(:key_usage) { cert.extensions.find { |e| e.oid == 'extendedKeyUsage' } }
+    let(:alt_names) { cert.extensions.find { |e| e.oid == 'subjectAltName' } }
 
-    it "creates a self-signed certificate" do
-      csr  = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:signing_request => csr)
-
+    it 'creates a self-signed certificate' do
       expect(cert.subject.to_s).to eq csr.subject.to_s
       expect(cert.subject.to_s).to eq cert.issuer.to_s
     end
-    
-    it "creates a new certificate" do
-      csr  = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:signing_request => csr)
 
-      expect(cert.to_pem).to match (/BEGIN CERTIFICATE/)
-    end
-    
-    it "creates a certifcate and signs with a CA cert" do
-      csr = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:signing_request => csr, :ca_certificate => @ca.certificate)
-      cert.sign(@ca.key)
-
-      expect(cert.to_pem).to match (/BEGIN CERTIFICATE/)
-      expect(cert.subject.to_s).to eq csr.subject.to_s
-      expect(cert.issuer.to_s).to eq @ca.certificate.subject.to_s
+    it 'creates a new certificate' do
+      expect(cert.to_pem).to match(/BEGIN CERTIFICATE/)
     end
 
-    it "sets usage for servers" do
-      csr = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:signing_request => csr, :ca_certificate => @ca.certificate)
-      cert.sign(@ca.key)
-      ext_key_usage = cert.extensions.select {|e| e.oid == 'extendedKeyUsage' }.first
+    context 'with a CA cert' do
+      let(:cert) do
+        EaSSL::Certificate.new(signing_request: csr,
+                               ca_certificate: ca.certificate)
+      end
 
-      expect(ext_key_usage.value).to eq "TLS Web Server Authentication"
+      it 'creates a certifcate and signs with a CA cert' do
+        cert.sign(ca.key)
+        expect(cert.to_pem).to match(/BEGIN CERTIFICATE/)
+        expect(cert.subject.to_s).to eq csr.subject.to_s
+        expect(cert.issuer.to_s).to eq ca.certificate.subject.to_s
+      end
+
+      it 'sets usage for servers' do
+        cert.sign(ca.key)
+        expect(key_usage.value).to eq 'TLS Web Server Authentication'
+      end
     end
 
-    it "sets usage for clients" do
-      csr = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:type => 'client', :signing_request => csr, :ca_certificate => @ca.certificate)
-      cert.sign(@ca.key)
-      ext_key_usage = cert.extensions.select {|e| e.oid == 'extendedKeyUsage' }.first
+    context 'with a client certificate request' do
+      let(:cert) do
+        EaSSL::Certificate.new(type: 'client',
+                               signing_request: csr,
+                               ca_certificate: ca.certificate)
+      end
 
-      expect(ext_key_usage.value).to eq "TLS Web Client Authentication, E-mail Protection"
+      it 'sets usage for clients' do
+        cert.sign(ca.key)
+        expect(key_usage.value).to eq(
+          'TLS Web Client Authentication, E-mail Protection'
+        )
+      end
     end
 
-    it "sets a subject alternative name" do
-      csr = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:subject_alt_name => ['bar.com'], :signing_request => csr, :ca_certificate => @ca.certificate)
-      cert.sign(@ca.key)
-      ext_key_usage = cert.extensions.select {|e| e.oid == 'subjectAltName' }.first
-
-      expect(ext_key_usage.value).to match "DNS:bar.com"
-    end
-    
-    it "sets multiple subject alternative names" do
-      csr = EaSSL::SigningRequest.new(:name => @name, :key => @key)
-      cert = EaSSL::Certificate.new(:subject_alt_name => ['bar.com', 'foo.com'], :signing_request => csr, :ca_certificate => @ca.certificate)
-      cert.sign(@ca.key)
-      ext_key_usage = cert.extensions.select {|e| e.oid == 'subjectAltName' }.first
-
-      expect(ext_key_usage.value).to match "DNS:bar.com"
-      expect(ext_key_usage.value).to match "DNS:foo.com"
+    context 'with a subject alt name' do
+      let(:cert) do
+        EaSSL::Certificate.new(subject_alt_name: ['bar.com'],
+                               signing_request: csr,
+                               ca_certificate: ca.certificate)
+      end
+      it 'sets a subject alternative name' do
+        cert.sign(ca.key)
+        expect(alt_names.value).to match 'DNS:bar.com'
+      end
     end
 
-    it "loads and verifies a certificate fingerprint" do
+    context 'with multiple subject alt names' do
+      let(:cert) do
+        EaSSL::Certificate.new(subject_alt_name: ['bar.com', 'foo.com'],
+                               signing_request: csr,
+                               ca_certificate: ca.certificate)
+      end
+      it 'sets multiple subject alternative names' do
+        cert.sign(ca.key)
+        expect(alt_names.value).to match 'DNS:bar.com'
+        expect(alt_names.value).to match 'DNS:foo.com'
+      end
+    end
+
+    it 'loads and verifies a certificate fingerprint' do
       file = File.join(File.dirname(__FILE__), '../test', 'certificate.pem')
       cert = EaSSL::Certificate.load(file)
 
-      expect(cert.sha1_fingerprint).to eq "55:27:E8:46:50:03:39:F4:A3:24:3D:88:57:BA:67:5C:F1:E8:84:1D"
+      expect(cert.sha1_fingerprint).to eq(
+        '55:27:E8:46:50:03:39:F4:A3:24:3D:88:57:BA:67:5C:F1:E8:84:1D'
+      )
     end
 
-    it "verifies a given text certificate fingerprint" do
+    it 'verifies a given text certificate fingerprint' do
       cert_text = <<CERT
 -----BEGIN CERTIFICATE-----
 MIIDzzCCAzigAwIBAgIBAjANBgkqhkiG9w0BAQUFADA8MQswCQYDVQQGEwJVUzEO
@@ -107,16 +118,18 @@ XBbgCxQiIndLwRnNMavd+vx0Wg==
 CERT
       cert = EaSSL::Certificate.new({}).load(cert_text)
 
-      expect(cert.sha1_fingerprint).to eq "55:27:E8:46:50:03:39:F4:A3:24:3D:88:57:BA:67:5C:F1:E8:84:1D"
+      expect(cert.sha1_fingerprint).to eq(
+        '55:27:E8:46:50:03:39:F4:A3:24:3D:88:57:BA:67:5C:F1:E8:84:1D'
+      )
     end
 
-    it "fails to load a non-existent file" do
-      expect {key = EaSSL::Certificate.load('./foo')}.to raise_error(Errno::ENOENT)
+    it 'fails to load a non-existent file' do
+      expect { EaSSL::Certificate.load('./foo') }.to raise_error(Errno::ENOENT)
     end
-    
-    it "fails to load a non-certificate file" do
+
+    it 'fails to load a non-certificate file' do
       file = File.join(File.dirname(__FILE__), '..', 'Rakefile')
-      expect {key = EaSSL::Certificate.load(file)}.to raise_error(RuntimeError)
+      expect { EaSSL::Certificate.load(file) }.to raise_error(RuntimeError)
     end
   end
 end
